@@ -578,5 +578,12 @@ func setCacheHash(ctx context.Context, cl client.Client, provider genericprovide
 	annotations[appliedSpecHashAnnotation] = cacheHash
 	provider.SetAnnotations(annotations)
 
-	return helper.Patch(ctx, secret)
+	if err := helper.Patch(ctx, secret); err != nil {
+		return fmt.Errorf("patching provider secret: %w", err)
+	}
+	if err := helper.Patch(ctx, provider); err != nil {
+		return fmt.Errorf("patching provider: %w", err)
+	}
+
+	return nil
 }
