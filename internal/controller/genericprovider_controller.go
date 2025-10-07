@@ -451,7 +451,7 @@ func (p *PhaseReconciler) ApplyFromCache(ctx context.Context) (*Result, error) {
 		return &Result{}, nil
 	}
 
-	log.Info("Applying provider configuration from cache")
+	log.Info("[hacked3] Applying provider configuration from cache")
 
 	errs := []error{}
 
@@ -481,7 +481,7 @@ func (p *PhaseReconciler) ApplyFromCache(ctx context.Context) (*Result, error) {
 		}
 
 		for _, manifest := range manifests {
-			if err := p.ctrlClient.Patch(ctx, &manifest, client.Apply, client.ForceOwnership, client.FieldOwner(cacheOwner)); err != nil {
+			if err := p.ctrlClient.Patch(ctx, &manifest, client.Merge); err != nil {
 				errs = append(errs, err)
 			}
 		}
@@ -509,7 +509,7 @@ func (p *PhaseReconciler) ApplyFromCache(ctx context.Context) (*Result, error) {
 		}
 
 		for _, manifest := range manifests {
-			if err := p.ctrlClient.Patch(ctx, &manifest, client.Apply, client.ForceOwnership, client.FieldOwner(cacheOwner)); err != nil {
+			if err := p.ctrlClient.Patch(ctx, &manifest, client.Merge); err != nil {
 				errs = append(errs, err)
 			}
 		}
