@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/google/go-github/v82/github"
 	"golang.org/x/oauth2"
@@ -63,7 +62,7 @@ func setPreflightFailed(provider genericprovider.GenericProvider, reason, messag
 }
 
 // preflightChecks performs preflight checks before installing provider.
-func preflightChecks(ctx context.Context, c client.Client, provider genericprovider.GenericProvider, providerList genericprovider.GenericProviderList, mapper ProviderTypeMapper, lister ProviderLister) error {
+func (p *PhaseReconciler) preflightChecks(ctx context.Context, c client.Client, provider genericprovider.GenericProvider, providerList genericprovider.GenericProviderList, mapper ProviderTypeMapper, lister ProviderLister) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	log.Info("Performing preflight checks")
@@ -86,7 +85,7 @@ func preflightChecks(ctx context.Context, c client.Client, provider genericprovi
 	}
 
 	// Check that if a predefined provider is being installed, and if it's not - ensure that FetchConfig is specified.
-	isPredefinedProvider, err := isPredefinedProvider(ctx, provider.ProviderName(), mapper(provider))
+	isPredefinedProvider, err := p.isPredefinedProvider(ctx, provider.ProviderName(), mapper(provider))
 	if err != nil {
 		return fmt.Errorf("failed to generate a list of predefined providers: %w", err)
 	}
@@ -232,22 +231,28 @@ func ignoreCoreProviderWaitError(err error) error {
 // isPredefinedProvider checks if a given provider is known for Cluster API.
 // The list of known providers can be found here:
 // https://github.com/kubernetes-sigs/cluster-api/blob/main/cmd/clusterctl/client/config/providers_client.go
-func isPredefinedProvider(ctx context.Context, providerName string, providerType clusterctlv1.ProviderType) (bool, error) {
-	path := configPath
-	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		path = ""
-	} else if err != nil {
-		return false, err
-	}
+func (p *PhaseReconciler) isPredefinedProvider(ctx context.Context, providerName string, providerType clusterctlv1.ProviderType) (bool, error) {
+	// path := configPath
+	// if _, err := os.Stat(configPath); os.IsNotExist(err) {
+	// 	path = ""
+	// } else if err != nil {
+	// 	return false, err
+	// }
 
-	// Initialize a client that contains predefined providers only.
-	configClient, err := configclient.New(ctx, path)
-	if err != nil {
-		return false, err
-	}
+	// // Initialize a client that contains predefined providers only.
+	// configClient, err := configclient.New(ctx, path)
+	// if err != nil {
+	// 	return false, err
+	// }
+
+	// // Try to find given provider in the predefined ones. If there is nothing, the function returns an error.
+	// _, err = configClient.Providers().Get(providerName, providerType)
+
+	// return err == nil, nil
 
 	// Try to find given provider in the predefined ones. If there is nothing, the function returns an error.
-	_, err = configClient.Providers().Get(providerName, providerType)
+	var err error
+	_, err = p.overridesClient.Providers().Get(providerName, providerType)
 
 	return err == nil, nil
 }

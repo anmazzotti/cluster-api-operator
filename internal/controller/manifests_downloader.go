@@ -149,7 +149,7 @@ func (p *PhaseReconciler) checkConfigMapExists(ctx context.Context, labelSelecto
 func (p *PhaseReconciler) Finalize(ctx context.Context) (*Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	err := setCacheHash(ctx, p.ctrlClient, p.provider)
+	err := p.setCacheHash(ctx, p.ctrlClient, p.provider)
 	if err != nil {
 		log.V(5).Error(err, "Failed to update providers hash")
 	} else {

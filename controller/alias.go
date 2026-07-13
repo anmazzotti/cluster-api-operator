@@ -69,3 +69,6 @@ var WithProviderMapper = providercontroller.WithProviderMapper
 
 // WithCustomAlterComponentsFuncs is an alias for the internal WithCustomAlterComponentsFuncs function.
 var WithCustomAlterComponentsFuncs = providercontroller.WithCustomAlterComponentsFuncs
+
+// WithProviderConverter is an alias for the internal WithProviderConverter function.
+var WithClusterctlConfigOverridesReader = providercontroller.WithClusterctlConfigOverridesReader

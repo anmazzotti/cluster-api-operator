@@ -455,15 +455,32 @@ func (p *PhaseReconciler) ApplyFromCache(ctx context.Context) (*Result, error) {
 		return &Result{}, fmt.Errorf("failed to calculate config map hash: %w", err)
 	}
 
-	data, err := os.ReadFile(configPath)
-	if os.IsNotExist(err) {
-		data = []byte{}
-	} else if err != nil {
-		return &Result{}, err
-	}
+	if p.overridesReader != nil {
+		var err error
+		configVariables := map[string]string{}
+		if configVariables["images"], err = p.overridesReader.Get("images"); err != nil {
+			log.V(5).Info("No images overrides are defined in config reader")
+		}
+		if configVariables["providers"], err = p.overridesReader.Get("providers"); err != nil {
+			log.V(5).Info("No providers overrides are defined in config reader")
+		}
+		if configVariables["cert-manager"], err = p.overridesReader.Get("cert-manager"); err != nil {
+			log.V(5).Info("No cert-manager overrides are defined in config reader")
+		}
+		if err := addObjectToHash(hash, configVariables); err != nil {
+			return &Result{}, fmt.Errorf("adding overrides variables to hash: %w", err)
+		}
+	} else {
+		data, err := os.ReadFile(configPath)
+		if os.IsNotExist(err) {
+			data = []byte{}
+		} else if err != nil {
+			return &Result{}, err
+		}
 
-	if err := addObjectToHash(hash, data); err != nil {
-		return &Result{}, err
+		if err := addObjectToHash(hash, data); err != nil {
+			return &Result{}, err
+		}
 	}
 
 	cacheHash := fmt.Sprintf("%x", hash.Sum(nil))
@@ -535,7 +552,7 @@ func (p *PhaseReconciler) applyManifestsFromData(ctx context.Context, data map[s
 }
 
 // setCacheHash calculates current provider and secret hash, and updates it on the secret.
-func setCacheHash(ctx context.Context, cl client.Client, provider genericprovider.GenericProvider) error {
+func (p *PhaseReconciler) setCacheHash(ctx context.Context, cl client.Client, provider genericprovider.GenericProvider) error {
 	log := log.FromContext(ctx)
 
 	secret := &corev1.Secret{}
@@ -558,16 +575,44 @@ func setCacheHash(ctx context.Context, cl client.Client, provider genericprovide
 		return err
 	}
 
-	data, err := os.ReadFile(configPath)
-	if os.IsNotExist(err) {
-		data = []byte{}
-	} else if err != nil {
-		return err
+	if p.overridesReader != nil {
+		var err error
+		configVariables := map[string]string{}
+		if configVariables["images"], err = p.overridesReader.Get("images"); err != nil {
+			log.V(5).Info("No images overrides are defined in config reader")
+		}
+		if configVariables["providers"], err = p.overridesReader.Get("providers"); err != nil {
+			log.V(5).Info("No providers overrides are defined in config reader")
+		}
+		if configVariables["cert-manager"], err = p.overridesReader.Get("cert-manager"); err != nil {
+			log.V(5).Info("No cert-manager overrides are defined in config reader")
+		}
+		if err := addObjectToHash(hash, configVariables); err != nil {
+			return fmt.Errorf("adding overrides variables to hash: %w", err)
+		}
+	} else {
+		data, err := os.ReadFile(configPath)
+		if os.IsNotExist(err) {
+			data = []byte{}
+		} else if err != nil {
+			return err
+		}
+
+		if err := addObjectToHash(hash, data); err != nil {
+			return err
+		}
 	}
 
-	if err := addObjectToHash(hash, data); err != nil {
-		return err
-	}
+	// data, err := os.ReadFile(configPath)
+	// if os.IsNotExist(err) {
+	// 	data = []byte{}
+	// } else if err != nil {
+	// 	return err
+	// }
+
+	// if err := addObjectToHash(hash, data); err != nil {
+	// 	return err
+	// }
 
 	cacheHash := fmt.Sprintf("%x", hash.Sum(nil))
 

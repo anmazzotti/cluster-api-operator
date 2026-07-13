@@ -74,13 +74,25 @@ func (p *PhaseReconciler) InitializePhaseReconciler(ctx context.Context) (*Resul
 		return &Result{}, err
 	}
 
-	// Initialize a client for interacting with the clusterctl configuration.
-	initConfig, err := configclient.New(ctx, path)
-	if err != nil {
-		return &Result{}, err
-	} else if path != "" {
-		// Set the image and providers override client
-		p.overridesClient = initConfig
+	// If a custom overrides reader is provided, initialize it and use it.
+	if p.overridesReader != nil {
+		if err := p.overridesReader.Init(ctx, path); err != nil {
+			return &Result{}, fmt.Errorf("initializing overrides client reader: %w", err)
+		}
+		overridesClient, err := configclient.New(ctx, path, configclient.InjectReader(p.overridesReader))
+		if err != nil {
+			return &Result{}, fmt.Errorf("creating new overrides client: %w", err)
+		}
+		p.overridesClient = overridesClient
+	} else {
+		// Initialize a default client for interacting with the clusterctl configuration.
+		initConfig, err := configclient.New(ctx, path)
+		if err != nil {
+			return &Result{}, fmt.Errorf("creating default overrides client: %w", err)
+		} else if path != "" {
+			// Set the image and providers override client
+			p.overridesClient = initConfig
+		}
 	}
 
 	overrideProviders := []configclient.Provider{}

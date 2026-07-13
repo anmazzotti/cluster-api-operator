@@ -67,6 +67,7 @@ type PhaseReconciler struct {
 	providerConfig             configclient.Provider
 	configClient               configclient.Client
 	overridesClient            configclient.Client
+	overridesReader            configclient.Reader
 	components                 repository.Components
 	clusterctlProvider         *clusterctlv1.Provider
 	needsCompression           bool
@@ -108,6 +109,12 @@ func WithProviderMapper(providerMapper ProviderMapper) PhaseReconcilerOption {
 func WithCustomAlterComponentsFuncs(fns []repository.ComponentsAlterFn) PhaseReconcilerOption {
 	return func(r *PhaseReconciler) {
 		r.customAlterComponentsFuncs = fns
+	}
+}
+
+func WithClusterctlConfigOverridesReader(overridesReader configclient.Reader) PhaseReconcilerOption {
+	return func(r *PhaseReconciler) {
+		r.overridesReader = overridesReader
 	}
 }
 
@@ -208,5 +215,5 @@ func (i InNamespace) ApplyToConfigMapRepository(settings *ConfigMapRepositorySet
 
 // PreflightChecks a wrapper around the preflight checks.
 func (p *PhaseReconciler) PreflightChecks(ctx context.Context) (*Result, error) {
-	return &Result{}, preflightChecks(ctx, p.ctrlClient, p.provider, p.providerList, p.providerTypeMapper, p.providerLister)
+	return &Result{}, p.preflightChecks(ctx, p.ctrlClient, p.provider, p.providerList, p.providerTypeMapper, p.providerLister)
 }
